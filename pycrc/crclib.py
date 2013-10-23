@@ -1,23 +1,69 @@
 #!/usr/bin/env python
 import random
-from pycrc.convert import *
+
+def dec2bin(decimal):
+    
+    if type(decimal).__name__ == 'str':
+        print "Error type : Not a integer"
+        return 0
+
+    digit = 1
+    binary = 0
+
+    decimal = int(decimal)
+
+    while decimal != 0:
+        binary = binary + (decimal%2) * digit
+        decimal = decimal/2
+        digit = digit * 10
+    
+    return str(binary)
+
+def bin2dec(binary):
+
+    if type(binary).__name__ == 'int':
+        print "Error type : Not a string"
+        return 0
+    
+    digit = 1
+    decimal = 0
+
+    binary = int(binary)
+
+    while binary != 0:
+        decimal = decimal + (binary%10) * digit
+        binary = binary/10
+        digit = digit * 2
+    
+    return decimal
+
+def count_bit(value):
+    
+    if type(value).__name__ == 'int':
+        binary = dec2bin(value)
+        num_bits = len(binary)
+    else:     
+        num_bits = len(value)
+
+    return num_bits
 
 class Sender(object):
 
     def __init__(self, dataword, divisor):
+        
         self.divisor = divisor
         self.dataword = dataword
         self.remainder = 0
         self.codeword = 0
         self.arg_dataword = 0
-
-    def getArgdataword(self):
+    
+    def __getArgdataword(self):
         
         self.arg_dataword = self.dataword << count_bit(self.divisor)-1
         
-        return dec2bin(self.arg_dataword)
+        return self.arg_dataword
         
-    def generator(self):
+    def __generator(self):
 
         divisor_dec = bin2dec(self.divisor)
 
@@ -46,29 +92,43 @@ class Sender(object):
 
         self.remainder = tmp
 
-        return dec2bin(self.remainder)
+        return self.remainder
 
-    def getCodeword(self):
+    def __getCodeword(self):
 
         self.codeword = self.arg_dataword | self.remainder
         
-        return dec2bin(self.codeword)
+        return self.codeword
+
+    def send(self):
+        self.arg_dataword = self.__getArgdataword()
+        self.remainder = self.__generator()
+        self.codeword = self.__getCodeword()
+
+        def converter():
+            self.arg_dataword2 = dec2bin(self.arg_dataword)
+            self.remainder2 = dec2bin(self.remainder)
+            self.codeword2 = dec2bin(self.codeword)
+
+        converter()
 
 
 class Receiver(object):
+    
     def __init__(self, codeword, divisor):
         
         self.codeword = codeword
         self.divisor = divisor
         self.syndrome = 0
         self.rx_dataword = 0
+        self.discard = False
 
-    def getDataword(self):
+    def __getDataword(self):
         
         self.rx_dataword = self.codeword >> count_bit(self.divisor)-1
-        return dec2bin(self.rx_dataword)
+        return self.rx_dataword
     
-    def checker(self):
+    def __checker(self):
         
         divisor_dec = bin2dec(self.divisor)
 
@@ -97,10 +157,10 @@ class Receiver(object):
 
         self.syndrome = tmp
 
-        return dec2bin(self.syndrome)
+        return self.syndrome
 
-    def decision(self):
-        self.rx_dataword = self.getDataword()
+    def __decision(self):
+        self.rx_dataword = self.__getDataword()
 
         
         if self.syndrome == 0:
@@ -110,26 +170,36 @@ class Receiver(object):
 
             return True, self.rx_dataword
 
+    def receive(self):
+        self.syndrome = self.__checker()
+        self.discard, self.rx_dataword = self.__decision()
+
+        def converter():
+            self.syndrome2 = dec2bin(self.syndrome)
+            self.rx_dataword2 = dec2bin(self.rx_dataword)
+
+        converter()            
+
 
 class Channel(object):
+    
     def __init__(self, codeword, rate=0.3):
 
-        self.codeword = bin2dec(codeword)
+        self.codeword = codeword
         self.rate = rate
         self.rand = random.randint(1,101)
         self.noise = random.randint(1, self.codeword)
-        self.rx_dataword = 0
+        self.ch_codeword = 0
+        self.__passed()
         
-    def passed(self):
+    def __passed(self):
         
         if self.rand > self.rate*100:
-            self.rx_dataword = self.codeword
+            self.ch_codeword = self.codeword
         
         elif self.rand > self.rate*100*0.5 and self.rand <= self.rate*100:
-            self.rx_dataword = self.codeword | self.noise
+            self.ch_codeword = self.codeword | self.noise
         
         else:
-            self.rx_dataword = self.codeword ^ self.noise
-
-        return dec2bin(self.rx_dataword)
+            self.ch_codeword = self.codeword ^ self.noise
 

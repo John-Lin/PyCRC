@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-from pycrc.convert import *
 #from pycrc.crclib import Sender, Receiver, Channel
-from pycrc.crclib import Sender, Receiver, Channel
+from pycrc.crclib import *
 def main():
+#-----------------------------------------------------------------------------
+#Sender
 
     divisor = str(raw_input("Input divisor in binary type: "))
     #user_dataword = str(raw_input("Input dataword in binary type: "))
@@ -10,36 +11,33 @@ def main():
 
     print "\nSender:"
     
-    dataword = Sender(bin2dec(user_dataword), divisor)
-    arg_dataword = dataword.getArgdataword()
-    remainder = dataword.generator()
-    codeword = dataword.getCodeword()
+    sender = Sender(bin2dec(user_dataword), divisor)
+    sender.send()
     
-    print "arg_dataword:", arg_dataword
-    print "remainder:", remainder
-    print "codeword:", codeword
-
-
+    print "arg_dataword:", sender.arg_dataword2
+    print "remainder:", sender.remainder2
+    print "codeword:", sender.codeword2
+ 
+#-----------------------------------------------------------------------------
+#Channel
 
     print "\nChannel:"
 
-    channel = Channel(codeword)
-    channel_codeword = channel.passed()
-    print "Throgh to the channel get codeword:", channel_codeword
-    
-
-
+    channel = Channel(sender.codeword)
+    print "Throgh to the channel get channel codeword:", dec2bin(channel.ch_codeword)
+     
+#-----------------------------------------------------------------------------
+#Receiver
 
     print "\nReceiver:"
 
-    rx_codeword = Receiver(bin2dec(channel_codeword), divisor)
-    #rx_dataword = rx_codeword.getDataword()
-    syndrome = rx_codeword.checker()
-    ans, rx_dataword = rx_codeword.decision()
-    
-    print "syndrome:", syndrome
-    print "Discard or not?", ans
-    print "rx_dataword:", rx_dataword
+    receiver = Receiver(channel.ch_codeword, divisor)
+
+    receiver.receive()
+
+    print "syndrome:", receiver.syndrome2
+    print "Discard or not?", receiver.discard
+    print "rx_dataword:", receiver.rx_dataword2
 
 if __name__ == '__main__':
     main()
