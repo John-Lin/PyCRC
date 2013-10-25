@@ -51,7 +51,7 @@ class Sender(object):
 
     def __init__(self, dataword, divisor):
         
-        self.divisor = divisor
+        self.divisor = bin2dec(divisor)
         self.dataword = dataword
         self.remainder = 0
         self.codeword = 0
@@ -62,36 +62,27 @@ class Sender(object):
         self.arg_dataword = self.dataword << count_bit(self.divisor)-1
         
         return self.arg_dataword
-        
+
     def __generator(self):
-
-        divisor_dec = bin2dec(self.divisor)
-
         arg_bit = count_bit(dec2bin(self.arg_dataword))
-        div_bit = count_bit(self.divisor)
-
-        xor_times = arg_bit - div_bit
-
-        divisor_dec = divisor_dec << xor_times
-
-        tmp = self.arg_dataword ^ divisor_dec
+        div_bit = count_bit(dec2bin(self.divisor))
         
-        divisor_dec = divisor_dec >> 1
+        padded_bit = arg_bit - div_bit
+        divisor_shift = self.divisor << padded_bit
 
-        if tmp == 0:
-            self.remainder = tmp
-            return dec2bin(self.remainder)
+        result = self.arg_dataword
+        while(True):
 
-        for i in range(1 ,xor_times):
+            result = result ^ divisor_shift
+            #print dec2bin(result)
 
-            if (tmp ^ divisor_dec) > tmp:
-                divisor_dec = divisor_dec >> 1
-            else:
-                tmp = tmp ^ divisor_dec
-                divisor_dec >> 1
+            padded_bit = count_bit(dec2bin(result)) - div_bit
+            if padded_bit < 0:
+                break
+            divisor_shift = self.divisor << padded_bit
 
-        self.remainder = tmp
-
+        self.remainder = result
+        
         return self.remainder
 
     def __getCodeword(self):
@@ -118,7 +109,7 @@ class Receiver(object):
     def __init__(self, codeword, divisor):
         
         self.codeword = codeword
-        self.divisor = divisor
+        self.divisor = bin2dec(divisor)
         self.syndrome = 0
         self.rx_dataword = 0
         self.discard = False
@@ -127,36 +118,27 @@ class Receiver(object):
         
         self.rx_dataword = self.codeword >> count_bit(self.divisor)-1
         return self.rx_dataword
-    
+
     def __checker(self):
-        
-        divisor_dec = bin2dec(self.divisor)
-
         code_bit = count_bit(dec2bin(self.codeword))
-        div_bit = count_bit(self.divisor)
-
-        xor_times = code_bit - div_bit
-
-        divisor_dec = divisor_dec << xor_times
-
-        tmp = self.codeword ^ divisor_dec
+        div_bit = count_bit(dec2bin(self.divisor))
         
-        divisor_dec = divisor_dec >> 1
+        padded_bit = code_bit - div_bit
+        divisor_shift = self.divisor << padded_bit
 
-        if tmp == 0:
-            self.syndrome = tmp
-            return dec2bin(self.syndrome)
+        result = self.codeword
+        while(True):
 
-        for i in range(1 ,xor_times):
+            result = result ^ divisor_shift
+            #print dec2bin(result)
 
-            if (tmp ^ divisor_dec) > tmp:
-                divisor_dec = divisor_dec >> 1
-            else:
-                tmp = tmp ^ divisor_dec
-                divisor_dec >> 1
+            padded_bit = count_bit(dec2bin(result)) - div_bit
+            if padded_bit < 0:
+                break
+            divisor_shift = self.divisor << padded_bit
 
-        self.syndrome = tmp
-
+        self.syndrome = result
+        
         return self.syndrome
 
     def __decision(self):
