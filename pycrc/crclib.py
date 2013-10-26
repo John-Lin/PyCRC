@@ -1,71 +1,74 @@
 #!/usr/bin/env python
 import random
 
-def dec2bin(decimal):
+class Converter(object):
+
+    def dec2bin(self, decimal):
     
-    if type(decimal).__name__ == 'str':
-        print "Error type : Not a integer"
-        return 0
+        if type(decimal).__name__ == 'str':
+            print "Error type : Not a integer"
+            return 0
 
-    digit = 1
-    binary = 0
+        digit = 1
+        binary = 0
 
-    decimal = int(decimal)
+        decimal = int(decimal)
 
-    while decimal != 0:
-        binary = binary + (decimal%2) * digit
-        decimal = decimal/2
-        digit = digit * 10
+        while decimal != 0:
+            binary = binary + (decimal%2) * digit
+            decimal = decimal/2
+            digit = digit * 10
+        
+        return str(binary)
+
+    def bin2dec(self, binary):
+
+        if type(binary).__name__ == 'int':
+            print "Error type : Not a string"
+            return 0
+        
+        digit = 1
+        decimal = 0
+
+        binary = int(binary)
+
+        while binary != 0:
+            decimal = decimal + (binary%10) * digit
+            binary = binary/10
+            digit = digit * 2
+        
+        return decimal
+
+    def count_bit(self, value):
     
-    return str(binary)
+        if type(value).__name__ == 'int':
+            binary = self.dec2bin(value)
+            num_bits = len(binary)
+        else:     
+            num_bits = len(value)
 
-def bin2dec(binary):
+        return num_bits
 
-    if type(binary).__name__ == 'int':
-        print "Error type : Not a string"
-        return 0
-    
-    digit = 1
-    decimal = 0
 
-    binary = int(binary)
-
-    while binary != 0:
-        decimal = decimal + (binary%10) * digit
-        binary = binary/10
-        digit = digit * 2
-    
-    return decimal
-
-def count_bit(value):
-    
-    if type(value).__name__ == 'int':
-        binary = dec2bin(value)
-        num_bits = len(binary)
-    else:     
-        num_bits = len(value)
-
-    return num_bits
-
-class Sender(object):
+class Sender(Converter):
 
     def __init__(self, dataword, divisor):
         
-        self.divisor = bin2dec(divisor)
-        self.dataword = dataword
+        self.divisor = self.bin2dec(divisor)
+        self.dataword = self.bin2dec(dataword)
         self.remainder = 0
         self.codeword = 0
         self.arg_dataword = 0
     
     def __getArgdataword(self):
         
-        self.arg_dataword = self.dataword << count_bit(self.divisor)-1
+        self.arg_dataword = self.dataword << self.count_bit(self.divisor)-1
         
         return self.arg_dataword
 
     def __generator(self):
-        arg_bit = count_bit(dec2bin(self.arg_dataword))
-        div_bit = count_bit(dec2bin(self.divisor))
+        arg_bit = self.count_bit(self.dec2bin(self.arg_dataword))
+        div_bit = self.count_bit(self.dec2bin(self.divisor))
         
         padded_bit = arg_bit - div_bit
         divisor_shift = self.divisor << padded_bit
@@ -74,9 +77,9 @@ class Sender(object):
         while(True):
 
             result = result ^ divisor_shift
-            #print dec2bin(result)
+            #print self.dec2bin(result)
 
-            padded_bit = count_bit(dec2bin(result)) - div_bit
+            padded_bit = self.count_bit(self.dec2bin(result)) - div_bit
             if padded_bit < 0:
                 break
             divisor_shift = self.divisor << padded_bit
@@ -97,31 +100,31 @@ class Sender(object):
         self.codeword = self.__getCodeword()
 
         def converter():
-            self.arg_dataword2 = dec2bin(self.arg_dataword)
-            self.remainder2 = dec2bin(self.remainder)
-            self.codeword2 = dec2bin(self.codeword)
+            self.arg_dataword2 = self.dec2bin(self.arg_dataword)
+            self.remainder2 = self.dec2bin(self.remainder)
+            self.codeword2 = self.dec2bin(self.codeword)
 
         converter()
 
 
-class Receiver(object):
+class Receiver(Converter):
     
     def __init__(self, codeword, divisor):
         
         self.codeword = codeword
-        self.divisor = bin2dec(divisor)
+        self.divisor = self.bin2dec(divisor)
         self.syndrome = 0
         self.rx_dataword = 0
         self.discard = False
 
     def __getDataword(self):
         
-        self.rx_dataword = self.codeword >> count_bit(self.divisor)-1
+        self.rx_dataword = self.codeword >> self.count_bit(self.divisor)-1
         return self.rx_dataword
 
     def __checker(self):
-        code_bit = count_bit(dec2bin(self.codeword))
-        div_bit = count_bit(dec2bin(self.divisor))
+        code_bit = self.count_bit(self.dec2bin(self.codeword))
+        div_bit = self.count_bit(self.dec2bin(self.divisor))
         
         padded_bit = code_bit - div_bit
         divisor_shift = self.divisor << padded_bit
@@ -130,9 +133,9 @@ class Receiver(object):
         while(True):
 
             result = result ^ divisor_shift
-            #print dec2bin(result)
+            #print self.dec2bin(result)
 
-            padded_bit = count_bit(dec2bin(result)) - div_bit
+            padded_bit = self.count_bit(self.dec2bin(result)) - div_bit
             if padded_bit < 0:
                 break
             divisor_shift = self.divisor << padded_bit
@@ -157,13 +160,13 @@ class Receiver(object):
         self.discard, self.rx_dataword = self.__decision()
 
         def converter():
-            self.syndrome2 = dec2bin(self.syndrome)
-            self.rx_dataword2 = dec2bin(self.rx_dataword)
+            self.syndrome2 = self.dec2bin(self.syndrome)
+            self.rx_dataword2 = self.dec2bin(self.rx_dataword)
 
         converter()            
 
 
-class Channel(object):
+class Channel(Converter):
     
     def __init__(self, codeword, rate=0.3):
 
@@ -184,4 +187,6 @@ class Channel(object):
         
         else:
             self.ch_codeword = self.codeword ^ self.noise
+
+        self.ch_codeword2 = self.dec2bin(self.ch_codeword)
 
